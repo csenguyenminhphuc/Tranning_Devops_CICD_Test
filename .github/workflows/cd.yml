@@ -1,0 +1,56 @@
+name: CD - Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI - Test & Build"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  # Step 3: DEPLOY
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+    - name: Deploy to VPS
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        script: |
+          # Go to project folder
+          cd /opt/myapp || mkdir -p /opt/myapp && cd /opt/myapp
+          
+          # Get latest code
+          if [ -d .git ]; then
+            git pull origin main
+          else
+            git clone https://github.com/${{ github.repository }} .
+          fi
+          
+          # Create secure .env
+          cat > .env << 'EOF'
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_HOST=db
+          DB_PORT=5432
+          EOF
+          
+          # Deploy safely
+          docker compose down || true
+          docker compose build
+          docker compose up -d
+          
+          # Simple health check
+          sleep 15
+          if docker compose ps | grep -q "Up"; then
+            echo "✅ Deploy successful"
+          else
+            echo "❌ Deploy failed"
+            docker compose logs --tail=20
+            exit 1
+          fi

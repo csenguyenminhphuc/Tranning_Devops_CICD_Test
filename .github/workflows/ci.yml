@@ -1,0 +1,48 @@
+name: CI - Test & Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Step 1: TEST
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Test Python syntax
+      run: |
+        python -m py_compile app.py
+        echo "✅ Python syntax OK"
+        
+    - name: Test Frontend build
+      run: |
+        cd fe
+        npm install
+        npm run build
+        echo "✅ Frontend build OK"
+
+  # Step 2: BUILD
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Test Docker build
+      run: |
+        docker compose build
+        echo "✅ Docker build OK"
+        
+    - name: Test containers start
+      run: |
+        docker compose up -d
+        sleep 20
+        docker compose ps
+        docker compose down
+        echo "✅ Containers test OK"
