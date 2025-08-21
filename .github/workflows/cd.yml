@@ -41,8 +41,8 @@ jobs:
           EOF
           
           # Deploy safely
-          docker compose down || true
-          docker compose build
+          docker compose down
+          docker compose build --no-cache
           docker compose up -d
           
           # Simple health check
