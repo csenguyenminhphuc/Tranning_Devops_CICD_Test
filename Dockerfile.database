@@ -1,0 +1,5 @@
+FROM postgres:16
+COPY pg_hba.conf /etc/postgresql/pg_hba.conf
+CMD ["postgres", "-c", "hba_file=/etc/postgresql/pg_hba.conf"]
+# Nếu có postgresql.conf:
+# CMD ["postgres", "-c", "hba_file=/etc/postgresql/pg_hba.conf", "-c", "config_file=/etc/postgresql/postgresql.conf"]
