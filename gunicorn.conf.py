@@ -30,10 +30,3 @@ pidfile = "/tmp/gunicorn.pid"
 user = None
 group = None
 tmp_upload_dir = None
-
-# SSL (nếu cần)
-# keyfile = "/path/to/keyfile"
-# certfile = "/path/to/certfile"
-
-# Application
-# module = "app:app"  # Được define trong CMD

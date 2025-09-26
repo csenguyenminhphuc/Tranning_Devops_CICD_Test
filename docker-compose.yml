@@ -25,7 +25,7 @@ services:
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
     volumes:
-      - socket:/tmp  # Mount volume cho socket
+      - ./tmp:/tmp  # Bind mount cho socket
 
   frontend:
     build:
@@ -35,11 +35,10 @@ services:
     depends_on:
       - backend
     volumes:
-      - socket:/tmp  # Mount cùng volume
+      - ./tmp:/tmp  # Bind mount cùng thư mục
     ports:
       - 80:80
       - 443:443
 
 volumes:
-  db-data:
-  socket:  # Volume cho Unix socket
+  db-data:  # Chỉ giữ lại volume cho database

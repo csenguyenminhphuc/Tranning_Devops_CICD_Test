@@ -1,5 +1,17 @@
 FROM postgres:16
+
+# Copy configuration files
 COPY pg_hba.conf /etc/postgresql/pg_hba.conf
+
+# Copy database initialization script
+# PostgreSQL Docker image automatically runs scripts in /docker-entrypoint-initdb.d/
+COPY init-db.sql /docker-entrypoint-initdb.d/
+
+# Default environment variables will be overridden by docker-compose
+# ENV POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD will be set from .env file
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Use custom pg_hba.conf
 CMD ["postgres", "-c", "hba_file=/etc/postgresql/pg_hba.conf"]
-# Nếu có postgresql.conf:
-# CMD ["postgres", "-c", "hba_file=/etc/postgresql/pg_hba.conf", "-c", "config_file=/etc/postgresql/postgresql.conf"]

@@ -4,6 +4,7 @@ WORKDIR /app
 COPY fe/package*.json .
 RUN npm install
 COPY fe/ .
+RUN npm install @mui/icons-material
 RUN npm run build
 
 # Stage 2: Serve với Nginx
