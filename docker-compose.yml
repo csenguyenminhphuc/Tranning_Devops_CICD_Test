@@ -2,7 +2,7 @@ services:
   db:
     build:
       context: .
-      dockerfile: Dockerfile.database
+      dockerfile: db/Dockerfile.database
     restart: always
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -14,7 +14,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: be/Dockerfile.backend
     restart: always
     depends_on:
       - db
@@ -30,7 +30,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
+      dockerfile: fe/Dockerfile.frontend
     restart: always
     depends_on:
       - backend
