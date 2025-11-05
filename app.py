@@ -15,6 +15,7 @@ CORS(app, origins=[
 
 # Đọc cấu hình từ environment variables
 
+
 config = {
     'database': os.getenv('DB_NAME'),
     'user': os.getenv('DB_USER'),
