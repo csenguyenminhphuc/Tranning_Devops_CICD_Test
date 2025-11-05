@@ -19,7 +19,6 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Divider,
   Paper,
   Button,
   TextField,
@@ -32,8 +31,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Fab
+  TableRow
 } from '@mui/material';
 import { 
   Home, 
@@ -41,15 +39,11 @@ import {
   Dashboard,
   TrendingUp,
   People,
-  Security,
   Info,
   Computer,
   Storage,
   NetworkCheck,
   Timeline,
-  CheckCircle,
-  Warning,
-  Error as ErrorIcon,
   Code,
   Cloud,
   Add,
