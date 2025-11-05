@@ -1,7 +1,46 @@
-import React from 'react';
-import { Box, Typography, Container, Avatar, Card, CardContent, Chip, Grid, Button } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Container, Avatar, Card, CardContent, Chip, Grid, Button, Alert, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
+
+// Multiple API endpoints to try in order
+const API_ENDPOINTS = [
+  'https://be.phucncc.com',
+  'http://be.phucncc.com',
+  'https://localhost',
+  'http://localhost',
+  'https://127.0.0.1',
+  'http://127.0.0.1',
+  'https://be.localhost',
+  'http://be.localhost'
+];
+
+// Helper function to try fetching from multiple endpoints
+const fetchFromMultipleEndpoints = async (path, options = {}) => {
+  let lastError = null;
+  
+  for (const baseUrl of API_ENDPOINTS) {
+    try {
+      console.log(`Đang thử kết nối đến: ${baseUrl}${path}`);
+      const response = await fetch(`${baseUrl}${path}`, {
+        ...options,
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Kết nối thành công tới: ${baseUrl}${path}`);
+        return { response, baseUrl };
+      }
+      
+      console.log(`❌ Không thành công với ${baseUrl}${path}: ${response.status}`);
+    } catch (error) {
+      console.log(`❌ Lỗi kết nối ${baseUrl}${path}:`, error.message);
+      lastError = error;
+    }
+  }
+  
+  throw new Error(lastError?.message || 'Không thể kết nối đến bất kỳ backend nào');
+};
 
 // Styled components for animations and modern design
 const HeroSection = styled(Box)(({ theme }) => ({
@@ -73,11 +112,49 @@ const GradientButton = styled(Button)(({ theme }) => ({
 
 function HomePage() {
   const navigate = useNavigate();
+  const [userData, setUserData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [connectedBackend, setConnectedBackend] = useState(null);
 
   const skills = [
     'React', 'Node.js', 'Docker', 'Kubernetes', 'DevOps', 'Security', 
     'CI/CD', 'AWS', 'Python', 'JavaScript', 'MongoDB', 'PostgreSQL'
   ];
+
+  // Fetch data from backend
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const { response, baseUrl } = await fetchFromMultipleEndpoints('/data', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setUserData(data);
+        setConnectedBackend(baseUrl);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(err.message);
+        setConnectedBackend(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <HeroSection>
@@ -187,6 +264,76 @@ function HomePage() {
               >
                 Đăng Nhập Quản Trị
               </GradientButton>
+            </Box>
+
+            {/* API Data Section */}
+            <Box sx={{ mt: 4, pt: 4, borderTop: '2px solid #f0f0f0' }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  color: '#667eea',
+                  fontWeight: 'bold',
+                  mb: 2
+                }}
+              >
+                📊 Dữ liệu từ Backend API
+              </Typography>
+              
+              {connectedBackend && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Đã kết nối thành công tới: <strong>{connectedBackend}</strong>
+                </Alert>
+              )}
+              
+              {loading && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+                  <CircularProgress />
+                </Box>
+              )}
+              
+              {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  Lỗi khi tải dữ liệu: {error}
+                </Alert>
+              )}
+              
+              {!loading && !error && userData.length === 0 && (
+                <Alert severity="info">
+                  Không có dữ liệu người dùng
+                </Alert>
+              )}
+              
+              {!loading && !error && userData.length > 0 && (
+                <Grid container spacing={2}>
+                  {userData.map((user) => (
+                    <Grid item xs={12} sm={6} md={4} key={user.id}>
+                      <Card 
+                        sx={{ 
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          color: 'white',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            transform: 'scale(1.05)',
+                            boxShadow: '0 10px 20px rgba(0,0,0,0.2)',
+                          }
+                        }}
+                      >
+                        <CardContent>
+                          <Typography variant="h6" gutterBottom>
+                            {user.name}
+                          </Typography>
+                          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                            {user.email}
+                          </Typography>
+                          <Typography variant="caption" sx={{ opacity: 0.7, mt: 1, display: 'block' }}>
+                            ID: {user.id}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
             </Box>
           </CardContent>
         </FloatingCard>

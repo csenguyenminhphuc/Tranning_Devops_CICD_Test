@@ -57,26 +57,44 @@ import {
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 
-// API base URL - detect environment and use appropriate backend URL
-const getApiUrl = () => {
-  const hostname = window.location.hostname;
-  
-  // If accessing from localhost/127.0.0.1, use be.localhost
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'https://be.localhost';
-  }
-  
-  // If accessing from phucncc.com, use be.phucncc.com
-  if (hostname === 'phucncc.com') {
-    return 'https://be.phucncc.com';
-  }
-  
-  // For IP access, use same IP with different port or subdomain
-  // For now, fallback to be.phucncc.com
-  return 'https://be.phucncc.com';
-};
+// Multiple API endpoints to try in order
+const API_ENDPOINTS = [
+  'https://be.phucncc.com',
+  'http://be.phucncc.com',
+  'https://localhost',
+  'http://localhost',
+  'https://127.0.0.1',
+  'http://127.0.0.1',
+  'https://be.localhost',
+  'http://be.localhost'
+];
 
-const API_BASE_URL = getApiUrl();
+// Helper function to try fetching from multiple endpoints
+const fetchFromMultipleEndpoints = async (path, options = {}) => {
+  let lastError = null;
+  
+  for (const baseUrl of API_ENDPOINTS) {
+    try {
+      console.log(`Đang thử kết nối đến: ${baseUrl}${path}`);
+      const response = await fetch(`${baseUrl}${path}`, {
+        ...options,
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Kết nối thành công tới: ${baseUrl}${path}`);
+        return { response, baseUrl };
+      }
+      
+      console.log(`❌ Không thành công với ${baseUrl}${path}: ${response.status}`);
+    } catch (error) {
+      console.log(`❌ Lỗi kết nối ${baseUrl}${path}:`, error.message);
+      lastError = error;
+    }
+  }
+  
+  throw new Error(lastError?.message || 'Không thể kết nối đến bất kỳ backend nào');
+};
 
 // System status and info data
 const systemInfo = {
@@ -148,6 +166,7 @@ function AdminPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [connectedBackend, setConnectedBackend] = useState(null);
   
   // CRUD states
   const [openDialog, setOpenDialog] = useState(false);
@@ -166,21 +185,15 @@ function AdminPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const url = `${API_BASE_URL}/data`;
-    console.log('Fetching from:', url);
     
     try {
-      const response = await fetch(url);
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      
+      const { response, baseUrl } = await fetchFromMultipleEndpoints('/data');
       const userData = await response.json();
+      
       console.log('Data received:', userData);
       setData(userData);
       setError(null);
+      setConnectedBackend(baseUrl);
       
       // Update stats based on real data
       setStats(prev => ({
@@ -189,11 +202,20 @@ function AdminPage() {
         activeUsers: Math.floor(userData.length * 0.72) // 72% active users assumption
       }));
       
-      setSnackbar({ open: true, message: 'Dữ liệu đã được tải thành công!', severity: 'success' });
+      setSnackbar({ 
+        open: true, 
+        message: `Dữ liệu đã được tải thành công từ ${baseUrl}!`, 
+        severity: 'success' 
+      });
     } catch (error) {
       console.error('Error:', error);
       setError(error.message);
-      setSnackbar({ open: true, message: `Lỗi: ${error.message}`, severity: 'error' });
+      setConnectedBackend(null);
+      setSnackbar({ 
+        open: true, 
+        message: `Lỗi: ${error.message}`, 
+        severity: 'error' 
+      });
     } finally {
       setLoading(false);
     }
@@ -232,7 +254,7 @@ function AdminPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/add-users`, {
+      const { response } = await fetchFromMultipleEndpoints('/add-users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -263,7 +285,7 @@ function AdminPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/update-user/${editId}`, {
+      const { response } = await fetchFromMultipleEndpoints(`/update-user/${editId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -293,7 +315,7 @@ function AdminPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/delete-user/${id}`, {
+      const { response } = await fetchFromMultipleEndpoints(`/delete-user/${id}`, {
         method: 'DELETE',
       });
       
@@ -524,6 +546,29 @@ function AdminPage() {
                           }
                         />
                       </ListItem>
+
+                      {connectedBackend && (
+                        <ListItem sx={{ justifyContent: 'center', textAlign: 'center' }}>
+                          <ListItemIcon>
+                            <NetworkCheck sx={{ color: '#00bcd4' }} />
+                          </ListItemIcon>
+                          <ListItemText 
+                            primary="Backend kết nối"
+                            secondary={
+                              <Chip 
+                                label={connectedBackend}
+                                size="small"
+                                sx={{
+                                  backgroundColor: '#00bcd4',
+                                  color: 'white',
+                                  fontWeight: 'bold',
+                                  fontSize: '0.7rem'
+                                }}
+                              />
+                            }
+                          />
+                        </ListItem>
+                      )}
                     </List>
                   </CardContent>
                 </StyledCard>
