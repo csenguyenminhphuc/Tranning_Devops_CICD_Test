@@ -49,7 +49,7 @@ jobs:
         ssh ${{ secrets.VPS_HOST }} << 'ENDSSH'
           set -e
           echo "📂 Navigating to project directory..."
-          cd /opt/myapp || { mkdir -p /opt/myapp && cd /opt/myapp; }
+          cd /home/${{ secrets.VPS_USER }}|| { mkdir -p /home/${{ secrets.VPS_USER }} && cd /home/${{ secrets.VPS_USER }}; }
           
           echo "📥 Pulling latest code..."
           if [ -d .git ]; then
