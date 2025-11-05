@@ -32,19 +32,30 @@ jobs:
         # Configure SSH to use cloudflared for proxy with service token authentication
         cat > ~/.ssh/config << EOF
         Host ${{ secrets.VPS_HOST }}
-          ProxyCommand cloudflared access ssh --hostname %h --id ${TUNNEL_SERVICE_TOKEN_ID} --secret ${TUNNEL_SERVICE_TOKEN_SECRET}
+          ProxyCommand cloudflared access ssh --hostname %h --id $TUNNEL_SERVICE_TOKEN_ID --secret $TUNNEL_SERVICE_TOKEN_SECRET
           User ${{ secrets.VPS_USER }}
           IdentityFile ~/.ssh/id_ed25519
           StrictHostKeyChecking no
           UserKnownHostsFile /dev/null
         EOF
         chmod 600 ~/.ssh/config
+        
+        # Verify config was created correctly
+        echo "🔍 SSH Config created:"
+        cat ~/.ssh/config
     
     - name: Deploy to Server via Cloudflare Tunnel
       env:
         TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.TUNNEL_SERVICE_TOKEN_ID }}
         TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.TUNNEL_SERVICE_TOKEN_SECRET }}
+        CF_ACCESS_CLIENT_ID: ${{ secrets.TUNNEL_SERVICE_TOKEN_ID }}
+        CF_ACCESS_CLIENT_SECRET: ${{ secrets.TUNNEL_SERVICE_TOKEN_SECRET }}
       run: |
+        # Test connection first
+        echo "🔌 Testing SSH connection..."
+        ssh -v ${{ secrets.VPS_HOST }} "echo 'Connection successful!'" || echo "Connection test completed"
+        
+        # Deploy
         ssh ${{ secrets.VPS_HOST }} << 'ENDSSH'
           set -e
           echo "📂 Navigating to project directory..."
