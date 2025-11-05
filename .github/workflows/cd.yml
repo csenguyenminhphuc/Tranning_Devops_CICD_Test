@@ -1,4 +1,4 @@
-name: CD - Deploy
+name: CD - Deploy via Cloudflare Tunnel
 
 on:
   workflow_run:
@@ -8,49 +8,76 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Step 3: DEPLOY
   deploy:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     
     steps:
-    - name: Deploy to VPS
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        script: |
-          # Go to project folder
-          cd /opt/myapp || mkdir -p /opt/myapp && cd /opt/myapp
+    - name: Install Cloudflared
+      run: |
+        # Download and install cloudflared
+        wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+        sudo dpkg -i cloudflared-linux-amd64.deb
+        cloudflared --version
+    
+    - name: Setup SSH Key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+
+        # Configure SSH to use cloudflared for proxy
+        cat > ~/.ssh/config << 'EOF'
+        Host ${{ secrets.VPS_HOST }}
+          ProxyCommand cloudflared access ssh --hostname %h
+          User ${{ secrets.VPS_USER }}
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+        EOF
+        chmod 600 ~/.ssh/config
+    
+    - name: Deploy to Server via Cloudflare Tunnel
+      run: |
+        ssh ${{ secrets.VPS_HOST }} << 'ENDSSH'
+          set -e
+          echo "📂 Navigating to project directory..."
+          cd /opt/myapp || { mkdir -p /opt/myapp && cd /opt/myapp; }
           
-          # Get latest code
+          echo "📥 Pulling latest code..."
           if [ -d .git ]; then
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
           else
             git clone https://github.com/${{ github.repository }} .
           fi
           
-          # Create secure .env
+          echo "🔧 Creating environment file..."
           cat > .env << 'EOF'
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           DB_HOST=db
           DB_PORT=5432
-          EOF
+        EOF
           
-          # Deploy safely
+          echo "🚀 Deploying with Docker Compose..."
           docker compose down
           docker compose build --no-cache
           docker compose up -d
           
-          # Simple health check
-          sleep 15
-          if docker compose ps | grep -q "Up"; then
-            echo "✅ Deploy successful"
+          echo "⏳ Waiting for containers to start..."
+          sleep 20
+          
+          echo "🏥 Health check..."
+          if docker compose ps | grep -E "Up|running"; then
+            echo "✅ Deploy successful!"
+            docker compose ps
           else
-            echo "❌ Deploy failed"
-            docker compose logs --tail=20
+            echo "❌ Deploy failed!"
+            docker compose logs --tail=50
             exit 1
           fi
+          
+          echo "🧹 Cleaning up old images..."
+          docker image prune -f
+        ENDSSH

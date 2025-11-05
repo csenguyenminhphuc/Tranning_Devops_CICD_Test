@@ -1,32 +1,13 @@
-# Gunicorn configuration file
-
 # Server socket
 bind = "unix:/tmp/myapp.sock"
-backlog = 2048
-
-# Worker processes
 workers = 2                    # CPU cores * 2 + 1
-worker_class = "sync"
-worker_connections = 1000
-timeout = 30
-keepalive = 2
-
-# Restart workers after this many requests, to prevent memory leaks
-max_requests = 1000
-max_requests_jitter = 50
+timeout = 30                   # Thời gian chờ request (giây)
+keepalive = 2                  # Giữ kết nối HTTP
 
 # Logging
-accesslog = "-"               # stdout
-errorlog = "-"                # stderr
 loglevel = "info"
-access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
+accesslog = "-"               # Ghi log truy cập ra stdout
+errorlog = "-"                # Ghi log lỗi ra stderr
 
 # Process naming
-proc_name = "myapp_backend"
-
-# Server mechanics
-daemon = False
-pidfile = "/tmp/gunicorn.pid"
-user = None
-group = None
-tmp_upload_dir = None
+proc_name = "myapp_backend"   # Tên tiến trình để dễ nhận diện
