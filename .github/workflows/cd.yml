@@ -30,10 +30,11 @@ jobs:
         chmod 600 ~/.ssh/id_ed25519
 
         # Configure SSH to use cloudflared for proxy with service token authentication
-        cat > ~/.ssh/config << 'EOF'
+        cat > ~/.ssh/config << EOF
         Host ${{ secrets.VPS_HOST }}
-          ProxyCommand cloudflared access ssh --hostname %h
+          ProxyCommand cloudflared access ssh --hostname %h --id ${TUNNEL_SERVICE_TOKEN_ID} --secret ${TUNNEL_SERVICE_TOKEN_SECRET}
           User ${{ secrets.VPS_USER }}
+          IdentityFile ~/.ssh/id_ed25519
           StrictHostKeyChecking no
           UserKnownHostsFile /dev/null
         EOF
