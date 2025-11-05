@@ -48,17 +48,31 @@ jobs:
         # Deploy
         ssh ${{ secrets.VPS_HOST }} << 'ENDSSH'
           set -e
-          echo "📂 Navigating to project directory..."
-
-          cd /home/${{ secrets.VPS_USER }}|| { mkdir -p /home/${{ secrets.VPS_USER }}/myapp && cd /home/${{ secrets.VPS_USER }}/myapp; }
+          echo "📂 Setting up project directory..."
+          
+          # Navigate to home directory
+          cd "$HOME"
+          
+          # Create myapp directory if it doesn't exist
+          mkdir -p myapp
+          cd myapp
+          
+          # Define repo directory name (extracted from repository)
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
           
           echo "📥 Pulling latest code..."
-          if [ -d .git ]; then
+          if [ -d "$REPO_NAME" ]; then
+            echo "Repository directory exists, updating..."
+            cd "$REPO_NAME"
             git fetch origin main
             git reset --hard origin/main
           else
-            git clone https://github.com/${{ github.repository }} .
+            echo "Cloning repository..."
+            git clone https://github.com/${{ github.repository }}
+            cd "$REPO_NAME"
           fi
+          
+          echo "📍 Current directory: $(pwd)"
           
           echo "🔧 Creating environment file..."
           cat > .env << 'EOF'
