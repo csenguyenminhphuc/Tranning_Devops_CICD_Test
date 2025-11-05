@@ -21,9 +21,6 @@ jobs:
         cloudflared --version
     
     - name: Setup SSH Key and Cloudflare Access Token
-      env:
-        CF_ACCESS_CLIENT_ID: ${{ secrets.TUNNEL_SERVICE_TOKEN_ID }}
-        CF_ACCESS_CLIENT_SECRET: ${{ secrets.TUNNEL_SERVICE_TOKEN_SECRET }}
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
@@ -48,9 +45,6 @@ jobs:
         cat ~/.ssh/config
     
     - name: Deploy to Server via Cloudflare Tunnel
-      env:
-        CF_ACCESS_CLIENT_ID: ${{ secrets.TUNNEL_SERVICE_TOKEN_ID }}
-        CF_ACCESS_CLIENT_SECRET: ${{ secrets.TUNNEL_SERVICE_TOKEN_SECRET }}
       run: |
         # Deploy
         ssh ${{ secrets.VPS_HOST }} << 'ENDSSH'
