@@ -40,7 +40,6 @@ jobs:
           UserKnownHostsFile /dev/null
         EOF
         chmod 600 ~/.ssh/config
-        
         echo "🔍 SSH Config created:"
         cat ~/.ssh/config
     
