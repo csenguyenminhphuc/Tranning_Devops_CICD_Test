@@ -159,7 +159,6 @@ def get_stats():
             "system_status": "healthy",
             "last_updated": "2025-09-25"
         }
-        
         cursor.close()
         db_pool.putconn(conn)
         return jsonify(stats), 200
